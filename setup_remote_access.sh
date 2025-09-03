@@ -2,7 +2,14 @@
 # Remote Access Setup Script for Raspberry Pi Calendar App
 # This script enables SSH, VNC, and sets up file sharing for easy remote updates
 
+# Get current user information
+CURRENT_USER=$(whoami)
+USER_HOME=$(eval echo ~$CURRENT_USER)
+INSTALL_DIR="$USER_HOME/calendar-app"
+
 echo "Setting up remote access for Calendar App development..."
+echo "User: $CURRENT_USER"
+echo "Home: $USER_HOME"
 echo "======================================================"
 
 # Enable SSH
@@ -25,7 +32,7 @@ sudo tee -a /etc/samba/smb.conf > /dev/null << EOF
 
 [calendar-app]
     comment = Calendar App Development Share
-    path = /home/pi/calendar-app
+    path = $INSTALL_DIR
     browseable = yes
     read only = no
     only guest = no
@@ -33,11 +40,11 @@ sudo tee -a /etc/samba/smb.conf > /dev/null << EOF
     directory mask = 0777
     public = no
     writable = yes
-    valid users = pi
+    valid users = $CURRENT_USER
 
-[pi-home]
-    comment = Pi User Home Directory
-    path = /home/pi
+[${CURRENT_USER}-home]
+    comment = User Home Directory
+    path = $USER_HOME
     browseable = yes
     read only = no
     only guest = no
@@ -45,13 +52,13 @@ sudo tee -a /etc/samba/smb.conf > /dev/null << EOF
     directory mask = 0755
     public = no
     writable = yes
-    valid users = pi
+    valid users = $CURRENT_USER
 EOF
 
-# Set Samba password for pi user
-echo "Setting up Samba password for user 'pi'..."
+# Set Samba password for current user
+echo "Setting up Samba password for user '$CURRENT_USER'..."
 echo "You'll be prompted to set a password for remote file access:"
-sudo smbpasswd -a pi
+sudo smbpasswd -a $CURRENT_USER
 
 # Restart Samba
 sudo systemctl restart smbd
@@ -63,11 +70,11 @@ sudo apt install -y rsync
 
 # Create development directory structure
 echo "Setting up development directories..."
-mkdir -p /home/pi/calendar-app-dev
-mkdir -p /home/pi/calendar-app-backup
+mkdir -p "$USER_HOME/calendar-app-dev"
+mkdir -p "$USER_HOME/calendar-app-backup"
 
 # Create sync script for easy updates
-cat > /home/pi/sync-from-dev.sh << 'EOF'
+cat > "$USER_HOME/sync-from-dev.sh" << EOF
 #!/bin/bash
 # Sync script to update production calendar app from development version
 
@@ -77,13 +84,13 @@ echo "Syncing calendar app from development to production..."
 sudo systemctl stop calendar-app.service
 
 # Backup current production version
-cp -r /home/pi/calendar-app /home/pi/calendar-app-backup/backup-$(date +%Y%m%d_%H%M%S)
+cp -r $INSTALL_DIR $USER_HOME/calendar-app-backup/backup-\$(date +%Y%m%d_%H%M%S)
 
 # Sync files from development to production
-rsync -av --exclude='*.json' --exclude='__pycache__' /home/pi/calendar-app-dev/ /home/pi/calendar-app/
+rsync -av --exclude='*.json' --exclude='__pycache__' $USER_HOME/calendar-app-dev/ $INSTALL_DIR/
 
 # Set correct permissions
-chmod +x /home/pi/calendar-app/start_calendar.sh
+chmod +x $INSTALL_DIR/start_calendar.sh
 
 # Start the calendar service
 sudo systemctl start calendar-app.service
@@ -92,42 +99,42 @@ echo "Sync complete! Calendar app updated."
 echo "Check status with: sudo systemctl status calendar-app.service"
 EOF
 
-chmod +x /home/pi/sync-from-dev.sh
+chmod +x "$USER_HOME/sync-from-dev.sh"
 
 # Create reverse sync script (production to dev)
-cat > /home/pi/sync-to-dev.sh << 'EOF'
+cat > "$USER_HOME/sync-to-dev.sh" << EOF
 #!/bin/bash
 # Sync script to copy production calendar app to development version
 
 echo "Syncing calendar app from production to development..."
 
 # Sync files from production to development
-rsync -av /home/pi/calendar-app/ /home/pi/calendar-app-dev/
+rsync -av $INSTALL_DIR/ $USER_HOME/calendar-app-dev/
 
 echo "Sync complete! Development version updated with production files."
 EOF
 
-chmod +x /home/pi/sync-to-dev.sh
+chmod +x "$USER_HOME/sync-to-dev.sh"
 
 # Install Git for version control (optional)
 echo "Installing Git..."
 sudo apt install -y git
 
 # Set up Git repository (optional)
-cd /home/pi/calendar-app-dev
+cd "$USER_HOME/calendar-app-dev"
 if [ ! -d ".git" ]; then
     git init
-    git config user.name "Pi User"
-    git config user.email "pi@raspberry.local"
+    git config user.name "$CURRENT_USER"
+    git config user.email "$CURRENT_USER@raspberry.local"
     
     # Create initial commit
     git add .
     git commit -m "Initial calendar app commit"
-    echo "Git repository initialized in /home/pi/calendar-app-dev"
+    echo "Git repository initialized in $USER_HOME/calendar-app-dev"
 fi
 
 # Create remote development tools
-cat > /home/pi/dev-tools.sh << 'EOF'
+cat > "$USER_HOME/dev-tools.sh" << EOF
 #!/bin/bash
 # Development tools menu
 
@@ -148,16 +155,16 @@ read -p "Select option (1-9): " choice
 case $choice in
     1)
         echo "Starting calendar app in development mode..."
-        cd /home/pi/calendar-app-dev
+        cd $USER_HOME/calendar-app-dev
         python3 calendar_app.py
         ;;
     2)
         echo "Syncing development to production..."
-        /home/pi/sync-from-dev.sh
+        $USER_HOME/sync-from-dev.sh
         ;;
     3)
         echo "Syncing production to development..."
-        /home/pi/sync-to-dev.sh
+        $USER_HOME/sync-to-dev.sh
         ;;
     4)
         echo "Viewing production service logs..."
@@ -174,11 +181,11 @@ case $choice in
         ;;
     7)
         echo "Opening main app file in nano..."
-        nano /home/pi/calendar-app-dev/calendar_app.py
+        nano $USER_HOME/calendar-app-dev/calendar_app.py
         ;;
     8)
         echo "Git status:"
-        cd /home/pi/calendar-app-dev
+        cd $USER_HOME/calendar-app-dev
         git status
         ;;
     9)
@@ -191,7 +198,7 @@ case $choice in
 esac
 EOF
 
-chmod +x /home/pi/dev-tools.sh
+chmod +x "$USER_HOME/dev-tools.sh"
 
 # Get network information
 echo ""
@@ -206,33 +213,33 @@ echo "Remote Access Setup Complete!"
 echo "============================="
 echo ""
 echo "SSH Access:"
-echo "  ssh pi@$(hostname -I | awk '{print $1}')"
-echo "  (Use your Pi's user password)"
+echo "  ssh $CURRENT_USER@$(hostname -I | awk '{print $1}')"
+echo "  (Use your user password)"
 echo ""
 echo "VNC Access:"
 echo "  Connect to: $(hostname -I | awk '{print $1}'):5900"
-echo "  (Use your Pi's user password)"
+echo "  (Use your user password)"
 echo ""
 echo "File Sharing (Windows):"
 echo "  \\\\$(hostname -I | awk '{print $1}')\\calendar-app"
-echo "  \\\\$(hostname -I | awk '{print $1}')\\pi-home"
-echo "  (Use username: pi, password: set above)"
+echo "  \\\\$(hostname -I | awk '{print $1}')\\${CURRENT_USER}-home"
+echo "  (Use username: $CURRENT_USER, password: set above)"
 echo ""
 echo "Development Commands:"
-echo "  /home/pi/dev-tools.sh  - Development menu"
-echo "  /home/pi/sync-from-dev.sh - Update production from dev"
-echo "  /home/pi/sync-to-dev.sh - Copy production to dev"
+echo "  $USER_HOME/dev-tools.sh  - Development menu"
+echo "  $USER_HOME/sync-from-dev.sh - Update production from dev"
+echo "  $USER_HOME/sync-to-dev.sh - Copy production to dev"
 echo ""
 echo "Directories:"
-echo "  Production: /home/pi/calendar-app"
-echo "  Development: /home/pi/calendar-app-dev"
-echo "  Backups: /home/pi/calendar-app-backup"
+echo "  Production: $INSTALL_DIR"
+echo "  Development: $USER_HOME/calendar-app-dev"
+echo "  Backups: $USER_HOME/calendar-app-backup"
 echo ""
 
 # Copy current production to development
-if [ -d "/home/pi/calendar-app" ]; then
+if [ -d "$INSTALL_DIR" ]; then
     echo "Copying current production version to development directory..."
-    /home/pi/sync-to-dev.sh
+    $USER_HOME/sync-to-dev.sh
 fi
 
 echo "Setup complete! You can now connect remotely to develop and update your calendar app."

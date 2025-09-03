@@ -4,12 +4,12 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-User=pi
-Group=pi
-WorkingDirectory=/home/pi/calendar-app
+User=%i
+Group=%i
+WorkingDirectory=%h/calendar-app
 Environment=DISPLAY=:0
 ExecStartPre=/bin/sleep 10
-ExecStart=/home/pi/calendar-app/start_calendar.sh
+ExecStart=%h/calendar-app/start_calendar.sh
 Restart=always
 RestartSec=3
 

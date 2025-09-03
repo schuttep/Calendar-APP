@@ -16,9 +16,9 @@ function Load-Config {
     } else {
         return @{
             pi_ip = ""
-            username = "pi"
-            dev_path = "/home/pi/calendar-app-dev"
-            prod_path = "/home/pi/calendar-app"
+            username = "payto"
+            dev_path = "/home/payto/calendar-app-dev"
+            prod_path = "/home/payto/calendar-app"
         }
     }
 }
@@ -153,7 +153,7 @@ function Download-Files($config) {
 # Sync to production
 function Sync-ToProduction($config) {
     Write-Host "Syncing development to production on Pi..." -ForegroundColor Red
-    ssh "$($config.username)@$($config.pi_ip)" "/home/pi/sync-from-dev.sh"
+    ssh "$($config.username)@$($config.pi_ip)" "/home/$($config.username)/sync-from-dev.sh"
 }
 
 # View logs
@@ -190,7 +190,7 @@ function Start-DevMode($config) {
 function Create-Backup($config) {
     Write-Host "Creating backup on Pi..." -ForegroundColor Yellow
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    ssh "$($config.username)@$($config.pi_ip)" "cp -r $($config.prod_path) /home/pi/calendar-app-backup/manual-$timestamp"
+    ssh "$($config.username)@$($config.pi_ip)" "cp -r $($config.prod_path) /home/$($config.username)/calendar-app-backup/manual-$timestamp"
     Write-Host "✓ Backup created: manual-$timestamp" -ForegroundColor Green
 }
 
