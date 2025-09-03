@@ -1,0 +1,100 @@
+# Requirements for Raspberry Pi Touch Calendar
+
+## Hardware Requirements
+- Raspberry Pi 4B (4GB RAM recommended) or Raspberry Pi 3B+
+- Official Raspberry Pi 7" Touchscreen Display (800x480) or compatible
+- MicroSD Card (Class 10, 16GB minimum, 32GB recommended)
+- Official Raspberry Pi Power Supply (5V 3A for Pi 4, 5V 2.5A for Pi 3)
+- HDMI cable (if using external monitor)
+- Case with touchscreen mount (optional but recommended)
+
+## Software Requirements
+
+### Operating System
+- Raspberry Pi OS (32-bit or 64-bit)
+- Minimum: Raspberry Pi OS Lite with X11
+- Recommended: Raspberry Pi OS with Desktop
+
+### Python Requirements
+- Python 3.7 or higher (included in Raspberry Pi OS)
+- tkinter library (usually pre-installed)
+- Standard library modules: json, datetime, calendar, os, sys
+
+### System Packages
+```bash
+# Essential packages
+python3
+python3-tk
+xinput
+xset
+
+# Optional packages for enhanced functionality
+unclutter          # Hide mouse cursor
+xinput-calibrator  # Touchscreen calibration
+evtest            # Input device testing
+```
+
+### X11 Environment
+- X11 server running
+- Desktop environment or window manager
+- Graphics acceleration enabled (raspi-config → Advanced Options → GL Driver → GL (Full KMS))
+
+## Installation Requirements
+
+### Permissions
+- User must be in 'video' and 'input' groups for touchscreen access
+- Sudo access required for system service installation
+- Write permissions to installation directory
+
+### Network (for installation only)
+- Internet connection for package installation
+- GitHub access for downloading source (if applicable)
+
+### Storage Space
+- Minimum 100MB free space for application and data
+- Additional space for event backups (varies by usage)
+
+## Performance Recommendations
+
+### For Raspberry Pi 3B+
+- Increase GPU memory split to 128MB or higher
+- Use high-speed SD card (Class 10 or U1)
+- Close unnecessary background services
+- Consider overclocking within safe limits
+
+### For Raspberry Pi 4B
+- Standard configuration works well
+- 2GB RAM sufficient, 4GB recommended for multitasking
+- USB 3.0 port for high-speed SD card reader during setup
+
+## Optional Enhancements
+
+### Hardware
+- Real-time clock (RTC) module for accurate time without network
+- Case with built-in fan for continuous operation
+- UPS/battery backup for power outages
+
+### Software
+- SSH server for remote maintenance
+- VNC server for remote desktop access
+- Automatic updates (unattended-upgrades)
+
+## Development Environment
+
+### For Modification/Development
+```bash
+# Additional development tools
+git                # Version control
+python3-pip       # Python package manager
+python3-venv      # Virtual environments
+vim or nano       # Text editors
+```
+
+### Testing Tools
+```bash
+# Useful for debugging
+htop              # System monitoring
+xev               # X11 event viewer  
+lsof              # List open files
+strace            # System call tracer
+```

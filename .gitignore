@@ -1,0 +1,17 @@
+calendar_events.json
+calendar_events_backup_*.json
+calendar_tasks.json
+calendar_tasks_backup_*.json
+calendar_config.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.log
+*.tmp
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
