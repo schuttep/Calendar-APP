@@ -243,47 +243,69 @@ RDATE:19450814T180000
 END:DAYLIGHT
 END:VTIMEZONE
 BEGIN:VEVENT
-DTSTAMP:20250904T001636Z
-DTSTART;TZID=America/Chicago:20240826T110000
-DTEND;TZID=America/Chicago:20240826T115000
-SUMMARY:Data Structures CS 225 AL1
-RRULE:FREQ=WEEKLY;UNTIL=20241211T225900;BYDAY=MO,WE,FR
+DTSTAMP:20250904T002505Z
+DTSTART;TZID=America/Chicago:20250827T090000
+DTEND;TZID=America/Chicago:20250827T095000
+SUMMARY:Intro to Algs &amp\; Models of Comp ECE 374 BYA
+RRULE:FREQ=WEEKLY;UNTIL=20251210T225900;BYDAY=WE,FR
 TZID:America/Chicago
-UID:20250904T001636Z-Ellucian
-LOCATION:Campus: Urbana-Champaign Building: Foellinger Auditorium Room: AUD 
-DESCRIPTION:CRN: 35917\nCredit Hours: 4.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Solomon\, Brad (Primary) \n
+UID:20250904T002505Z-Ellucian
+LOCATION:Campus: Urbana-Champaign Building: Electrical & Computer Eng Bldg Room: 2017 
+DESCRIPTION:CRN: 66543\nCredit Hours: 0.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Chen\, Jack (Primary) Alabi\, DanielKani\, NickvashShen\, YueyiWang\, Suyuan\n
 END:VEVENT
 BEGIN:VEVENT
-DTSTAMP:20250904T001636Z
-DTSTART;TZID=America/Chicago:20240829T110000
-DTEND;TZID=America/Chicago:20240829T125000
-SUMMARY:Data Structures CS 225 ABD
-RRULE:FREQ=WEEKLY;UNTIL=20241211T225900;BYDAY=TH
+DTSTAMP:20250904T002505Z
+DTSTART;TZID=America/Chicago:20250826T153000
+DTEND;TZID=America/Chicago:20250826T164500
+SUMMARY:Intro to Algs &amp\; Models of Comp ECE 374 BL1
+RRULE:FREQ=WEEKLY;UNTIL=20251210T225900;BYDAY=TU,TH
 TZID:America/Chicago
-UID:20250904T001637Z-Ellucian
-LOCATION:Campus: Urbana-Champaign Building: Campus Instructional Facility Room: 4029 
-DESCRIPTION:CRN: 35923\nCredit Hours: 0.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Huang\, Arthur (Primary) Kanda\, MadhavSolomon\, Brad\n
+UID:20250904T002506Z-Ellucian
+LOCATION:Campus: Urbana-Champaign Building: Campus Instructional Facility Room: 0027/1025 
+DESCRIPTION:CRN: 70642\nCredit Hours: 4.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Kani\, Nickvash (Primary) Alabi\, Daniel\n
 END:VEVENT
 BEGIN:VEVENT
-DTSTAMP:20250904T001636Z
-DTSTART;TZID=America/Chicago:20240827T140000
-DTEND;TZID=America/Chicago:20240827T152000
-SUMMARY:Computer Systems Engineering ECE 391 AL
-RRULE:FREQ=WEEKLY;UNTIL=20241211T225900;BYDAY=TU,TH
+DTSTAMP:20250904T002505Z
+DTSTART;TZID=America/Chicago:20250826T093000
+DTEND;TZID=America/Chicago:20250826T105000
+SUMMARY:Applied Parallel Programming ECE 408 AL1
+RRULE:FREQ=WEEKLY;UNTIL=20251210T225900;BYDAY=TU,TH
 TZID:America/Chicago
-UID:20250904T001638Z-Ellucian
+UID:20250904T002507Z-Ellucian
 LOCATION:Campus: Urbana-Champaign Building: Electrical & Computer Eng Bldg Room: 1002 
-DESCRIPTION:CRN: 47765\nCredit Hours: 4.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Wang\, Dong Kai (Primary) Levchenko\, Kirill\n
+DESCRIPTION:CRN: 76323\nCredit Hours: 4.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Kindratenko\, Volodymyr (Primary) \n
 END:VEVENT
 BEGIN:VEVENT
-DTSTAMP:20250904T001636Z
-DTSTART;TZID=America/Chicago:20240828T130000
-DTEND;TZID=America/Chicago:20240828T135000
-SUMMARY:Computer Systems Engineering ECE 391 AD3
-RRULE:FREQ=WEEKLY;UNTIL=20241211T225900;BYDAY=WE
+DTSTAMP:20250904T002505Z
+DTSTART;TZID=America/Chicago:20250825T140000
+DTEND;TZID=America/Chicago:20250825T145000
+SUMMARY:Ice Skating HK 104 A3
+RRULE:FREQ=WEEKLY;UNTIL=20251017T225900;BYDAY=MO,WE,FR
 TZID:America/Chicago
-UID:20250904T001639Z-Ellucian
-LOCATION:Campus: Urbana-Champaign Building: Electrical & Computer Eng Bldg Room: 3026 
-DESCRIPTION:CRN: 50241\nCredit Hours: 0.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Wang\, Qihao (Primary) \n
+UID:20250904T002508Z-Ellucian
+LOCATION:Campus: Urbana-Champaign Building: Ice Arena Room: 111 
+DESCRIPTION:CRN: 79002\nCredit Hours: 1.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Clarke\, Caitlin (Primary) \n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20250904T002505Z
+DTSTART;TZID=America/Chicago:20250826T110000
+DTEND;TZID=America/Chicago:20250826T122000
+SUMMARY:Principles of Safe Autonomy ECE 484 AL1
+RRULE:FREQ=WEEKLY;UNTIL=20251210T225900;BYDAY=TU,TH
+TZID:America/Chicago
+UID:20250904T002509Z-Ellucian
+LOCATION:Campus: Urbana-Champaign Building: Electrical & Computer Eng Bldg Room: 1015 
+DESCRIPTION:CRN: 77453\nCredit Hours: 4.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Zhang\, Huan (Primary) \n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20250904T002505Z
+DTSTART;TZID=America/Chicago:20250829T110000
+DTEND;TZID=America/Chicago:20250829T115000
+SUMMARY:Principles of Safe Autonomy ECE 484 AB2
+RRULE:FREQ=WEEKLY;UNTIL=20251210T225900;BYDAY=FR
+TZID:America/Chicago
+UID:20250904T002510Z-Ellucian
+LOCATION:Campus: Urbana-Champaign Building: Electrical & Computer Eng Bldg Room: 5072 
+DESCRIPTION:CRN: 77731\nCredit Hours: 0.0\nLevel: Undergrad - Urbana-Champaign\nInstructor: Zhang\, Huan (Primary) \n
 END:VEVENT
 END:VCALENDAR

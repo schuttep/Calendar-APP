@@ -72,6 +72,12 @@ for ics_file in "$SCRIPT_DIR"/*.ics; do
     fi
 done
 
+# Copy auto-generated class templates if they exist
+if [ -f "$SCRIPT_DIR/classes_from_ics.txt" ]; then
+    cp "$SCRIPT_DIR/classes_from_ics.txt" "$INSTALL_DIR/"
+    echo "✓ Copied classes_from_ics.txt (auto-generated class templates)"
+fi
+
 # Create a simple service file
 echo ""
 echo "Step 4: Creating service file..."
@@ -107,6 +113,15 @@ if ! python3 -c "import tkinter" 2>/dev/null; then
     echo "✓ Installed python3-tk"
 else
     echo "✓ python3-tk already available"
+fi
+
+# Install virtual keyboard for touchscreen
+echo "Installing virtual keyboard..."
+if ! command -v onboard &> /dev/null; then
+    sudo apt install -y onboard
+    echo "✓ Installed onboard virtual keyboard"
+else
+    echo "✓ onboard virtual keyboard already available"
 fi
 
 # Test the app

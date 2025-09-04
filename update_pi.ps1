@@ -25,6 +25,12 @@ foreach ($file in $icsFiles) {
     scp $file.Name $destination
 }
 
+# Copy auto-generated class templates if they exist
+if (Test-Path "classes_from_ics.txt") {
+    Write-Host "Copying classes_from_ics.txt..."
+    scp "classes_from_ics.txt" $destination
+}
+
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Files copied successfully!" -ForegroundColor Green
     

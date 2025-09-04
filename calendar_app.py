@@ -31,11 +31,21 @@ class TouchCalendar:
     def setup_window(self):
         """Configure the main window for touchscreen use"""
         self.root.title("Touch Calendar")
-        self.root.attributes('-fullscreen', True)
         
-        # Get screen dimensions
+        # Get screen dimensions first
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
+        
+        # For small touchscreens, use maximized window instead of fullscreen
+        # This allows virtual keyboard to appear
+        if screen_width <= 800 and screen_height <= 600:
+            # Use maximized window for touchscreens to allow virtual keyboard
+            self.root.state('zoomed') if hasattr(self.root, 'state') else self.root.attributes('-zoomed', True)
+            # Remove window decorations but keep it accessible to virtual keyboard
+            self.root.overrideredirect(False)
+        else:
+            # Use fullscreen for larger displays
+            self.root.attributes('-fullscreen', True)
         
         # Configure for common Raspberry Pi touchscreen resolutions
         if screen_width <= 800 and screen_height <= 600:
@@ -57,14 +67,29 @@ class TouchCalendar:
             self.date_font = ('Arial', 14)
             self.button_size = 80
             
-        # Bind escape key to exit fullscreen (for development)
+        # Bind keys for window management
         self.root.bind('<Escape>', self.toggle_fullscreen)
         self.root.bind('<F11>', self.toggle_fullscreen)
+        self.fullscreen = screen_width > 800 or screen_height > 600
         
     def toggle_fullscreen(self, event=None):
-        """Toggle fullscreen mode"""
-        current = self.root.attributes('-fullscreen')
-        self.root.attributes('-fullscreen', not current)
+        """Toggle fullscreen mode - especially useful for touchscreen keyboard access"""
+        try:
+            if self.fullscreen:
+                # Exit fullscreen - allow virtual keyboard
+                self.root.attributes('-fullscreen', False)
+                self.root.state('normal')
+                # Maximize window but keep title bar
+                self.root.state('zoomed')
+                self.fullscreen = False
+            else:
+                # Enter fullscreen
+                self.root.attributes('-fullscreen', True)
+                self.fullscreen = True
+        except:
+            # Fallback for different platforms
+            current = self.root.attributes('-fullscreen')
+            self.root.attributes('-fullscreen', not current)
         
     def load_config(self):
         """Load configuration settings"""
@@ -130,10 +155,21 @@ class TouchCalendar:
             self.daily_tasks = {}
             
     def load_class_templates(self):
-        """Load class templates from classes.txt file"""
+        """Load class templates from classes.txt file and auto-generated ICS classes"""
+        # Load from manual classes.txt first
+        self.load_classes_from_file(self.classes_file)
+        
+        # Then load auto-generated classes from ICS import
+        ics_classes_file = "classes_from_ics.txt"
+        if os.path.exists(ics_classes_file):
+            print(f"Loading auto-generated classes from {ics_classes_file}")
+            self.load_classes_from_file(ics_classes_file)
+        
+    def load_classes_from_file(self, file_path):
+        """Load class templates from a specific text file"""
         try:
-            if os.path.exists(self.classes_file):
-                with open(self.classes_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
                     current_class = None
                     for line in f:
                         line = line.rstrip()
@@ -146,7 +182,8 @@ class TouchCalendar:
                         if not line.startswith(' ') and not line.startswith('\t'):
                             current_class = line.strip()
                             if current_class:
-                                self.class_templates[current_class] = []
+                                if current_class not in self.class_templates:
+                                    self.class_templates[current_class] = []
                         
                         # Task (indented)
                         elif line.startswith('  ') and current_class:
@@ -176,11 +213,10 @@ class TouchCalendar:
                             }
                             self.class_templates[current_class].append(task_dict)
             else:
-                print(f"Classes file {self.classes_file} not found. Using empty templates.")
+                print(f"Classes file {file_path} not found.")
                 
         except Exception as e:
-            print(f"Error loading class templates from {self.classes_file}: {e}")
-            # Fallback to empty templates
+            print(f"Error loading class templates from {file_path}: {e}")
             self.class_templates = {}
             
     def save_tasks(self):
@@ -356,7 +392,120 @@ class TouchCalendar:
         self.save_events()
         self.update_calendar()
         
+        # Extract class names from imported events and create templates
+        self.extract_class_templates_from_events()
+        
         return imported_count
+        
+    def extract_class_templates_from_events(self):
+        """Extract class names from imported events and create basic task templates"""
+        extracted_classes = {}
+        
+        for date_str, events in self.events.items():
+            for event in events:
+                if event.get('imported_from') == 'ics':
+                    # Extract class information from event title
+                    title = event.get('title', '')
+                    
+                    # Parse different formats of class titles
+                    class_name = self.parse_class_name(title)
+                    if class_name and class_name not in extracted_classes:
+                        # Create basic task template for this class
+                        extracted_classes[class_name] = [
+                            {
+                                'title': 'Review today\'s material',
+                                'description': f'Review notes and materials from {class_name}',
+                                'priority': 'medium'
+                            },
+                            {
+                                'title': 'Complete homework/assignments',
+                                'description': f'Work on any assignments for {class_name}',
+                                'priority': 'high'
+                            },
+                            {
+                                'title': 'Prepare for next class',
+                                'description': f'Read ahead and prepare for next {class_name} session',
+                                'priority': 'medium'
+                            },
+                            {
+                                'title': 'Study/practice problems',
+                                'description': f'Practice problems or study concepts from {class_name}',
+                                'priority': 'medium'
+                            }
+                        ]
+        
+        # Merge with existing class templates (prioritize ICS-extracted classes)
+        if extracted_classes:
+            self.class_templates.update(extracted_classes)
+            
+            # Create a classes_from_ics.txt file to show what was extracted
+            try:
+                with open('classes_from_ics.txt', 'w', encoding='utf-8') as f:
+                    f.write("# Classes extracted from ICS calendar import\n")
+                    f.write("# This file was auto-generated from your imported calendar\n\n")
+                    
+                    for class_name, tasks in extracted_classes.items():
+                        f.write(f"{class_name}\n")
+                        for task in tasks:
+                            priority = task['priority']
+                            title = task['title']
+                            description = task['description']
+                            f.write(f"  [{priority}] {title} - {description}\n")
+                        f.write("\n")
+                        
+                print(f"Created class templates for: {', '.join(extracted_classes.keys())}")
+            except Exception as e:
+                print(f"Error creating classes_from_ics.txt: {e}")
+    
+    def parse_class_name(self, event_title):
+        """Parse class name from various ICS event title formats"""
+        if not event_title:
+            return None
+            
+        title = event_title.strip()
+        
+        # Common patterns for university class titles:
+        # "Data Structures CS 225 AL1" -> "CS 225 - Data Structures"
+        # "Computer Systems Engineering ECE 391 AL" -> "ECE 391 - Computer Systems Engineering"
+        # "Physics 101 Lecture" -> "Physics 101"
+        
+        # Pattern 1: Subject Name + Course Code (like "Data Structures CS 225")
+        import re
+        pattern1 = r'^(.+?)\s+([A-Z]{2,4}\s+\d{3})'
+        match1 = re.match(pattern1, title)
+        if match1:
+            subject = match1.group(1).strip()
+            course_code = match1.group(2).strip()
+            return f"{course_code} - {subject}"
+        
+        # Pattern 2: Course Code + Subject Name (like "CS225 Data Structures")
+        pattern2 = r'^([A-Z]{2,4}\s*\d{3})\s+(.+?)(\s+(AL\d*|AD\d*|Lab|Discussion|Lecture).*)?$'
+        match2 = re.match(pattern2, title)
+        if match2:
+            course_code = match2.group(1).strip()
+            subject = match2.group(2).strip()
+            return f"{course_code} - {subject}"
+            
+        # Pattern 3: Simple course code pattern (like "MATH 101")
+        pattern3 = r'([A-Z]{2,4}\s+\d{3})'
+        match3 = re.search(pattern3, title)
+        if match3:
+            course_code = match3.group(1)
+            # Try to get subject name before or after the code
+            remaining = title.replace(course_code, '').strip()
+            remaining = re.sub(r'\s+(AL\d*|AD\d*|Lab|Discussion|Lecture).*$', '', remaining)
+            if remaining:
+                return f"{course_code} - {remaining}"
+            else:
+                return course_code
+        
+        # Pattern 4: Just return the title if it looks like a class (contains numbers)
+        if re.search(r'\d', title) and len(title) < 50:
+            # Clean up common suffixes
+            cleaned = re.sub(r'\s+(AL\d*|AD\d*|Lab|Discussion|Lecture|Section).*$', '', title)
+            return cleaned.strip()
+        
+        return None
             
     def save_events(self):
         """Save events to JSON file"""
@@ -462,6 +611,16 @@ class TouchCalendar:
             relief='raised', bd=2, height=2
         )
         self.import_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Add keyboard toggle button for touchscreens
+        screen_width = self.root.winfo_screenwidth()
+        if screen_width <= 800:
+            self.keyboard_btn = tk.Button(
+                self.bottom_frame, text="⌨️", font=self.button_font,
+                command=self.toggle_virtual_keyboard, bg='lightgray',
+                relief='raised', bd=2, height=2, width=3
+            )
+            self.keyboard_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         self.settings_btn = tk.Button(
             self.bottom_frame, text="Settings", font=self.button_font,
@@ -691,10 +850,38 @@ class TouchCalendar:
         if file_path:
             try:
                 count = self.import_ics_events(file_path)
-                messagebox.showinfo("Import Complete", 
-                    f"Successfully imported {count} events from {os.path.basename(file_path)}")
+                class_count = len([cls for cls in self.class_templates.keys() 
+                                 if any("Review today's material" in task.get('title', '') 
+                                       for task in self.class_templates[cls])])
+                
+                message = f"Successfully imported {count} events from {os.path.basename(file_path)}"
+                if class_count > 0:
+                    message += f"\n\nAlso created daily task templates for {class_count} classes."
+                    message += "\nCheck 'Daily Tasks' to see your class-based todo lists!"
+                    
+                messagebox.showinfo("Import Complete", message)
             except Exception as e:
                 messagebox.showerror("Import Error", f"Failed to import calendar: {str(e)}")
+                
+    def toggle_virtual_keyboard(self):
+        """Toggle virtual keyboard on touchscreen devices"""
+        try:
+            # Try to launch the onscreen keyboard
+            import subprocess
+            subprocess.Popen(['onboard'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        except:
+            try:
+                # Alternative: matchbox-keyboard
+                subprocess.Popen(['matchbox-keyboard'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            except:
+                # Show helpful message if no virtual keyboard is available
+                messagebox.showinfo("Virtual Keyboard", 
+                    "Virtual keyboard not found.\n\n" +
+                    "To install:\n" +
+                    "sudo apt install onboard\n" +
+                    "or\n" +
+                    "sudo apt install matchbox-keyboard\n\n" +
+                    "Press Escape to exit fullscreen for easier typing.")
             
     def exit_app(self):
         """Exit the application"""
