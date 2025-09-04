@@ -438,30 +438,7 @@ class TouchCalendar:
         # Extract class names from imported events and create templates
         self.extract_class_templates_from_events()
         
-        # Debug: Print what events were actually stored
-        self.debug_stored_events()
-        
         return imported_count
-        
-    def debug_stored_events(self):
-        """Debug function to show what events are actually stored"""
-        print(f"\n=== STORED EVENTS DEBUG ===")
-        print(f"Total dates with events: {len(self.events)}")
-        
-        # Show events for next 2 weeks for debugging
-        start_date = datetime.date.today()
-        for i in range(14):
-            check_date = start_date + datetime.timedelta(days=i)
-            date_str = check_date.isoformat()
-            
-            if date_str in self.events and self.events[date_str]:
-                print(f"\n{check_date.strftime('%A %Y-%m-%d')}:")
-                for event in self.events[date_str]:
-                    print(f"  - {event.get('start_time', 'No time')} {event['title']} ({event.get('category', 'no category')})")
-            else:
-                print(f"{check_date.strftime('%A %Y-%m-%d')}: No events")
-        
-        print(f"=== END DEBUG ===\n")
         
     def extract_class_templates_from_events(self):
         """Extract class names from imported events and create basic task templates"""
@@ -844,8 +821,6 @@ class TouchCalendar:
             
         week_dates = [start_of_week + datetime.timedelta(days=i) for i in range(7)]
         
-        print(f"Week view: {[d.strftime('%Y-%m-%d %A') for d in week_dates]}")  # Debug
-        
         # Update month/year label to show week range
         start_str = start_of_week.strftime('%b %d')
         end_str = week_dates[-1].strftime('%b %d, %Y')
@@ -875,18 +850,9 @@ class TouchCalendar:
             
             date_str = date_obj.isoformat()
             
-            print(f"Checking date {date_str} for events...")  # Debug
-            
             # Check if this date has events
             has_events = date_str in self.events and len(self.events[date_str]) > 0
             has_tasks = date_str in self.daily_tasks and len(self.daily_tasks[date_str]) > 0
-            
-            if has_events:
-                print(f"  Found {len(self.events[date_str])} events for {date_str}")
-                for event in self.events[date_str]:
-                    print(f"    - {event['title']} at {event['start_time']}")
-            else:
-                print(f"  No events found for {date_str}")
             
             # Determine background color
             if date_obj == today:
