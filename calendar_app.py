@@ -39,9 +39,9 @@ class TouchCalendar:
         # For small touchscreens, use maximized window instead of fullscreen
         # This allows virtual keyboard to appear
         if screen_width <= 800 and screen_height <= 600:
-            # Use maximized window for touchscreens to allow virtual keyboard
-            self.root.state('zoomed') if hasattr(self.root, 'state') else self.root.attributes('-zoomed', True)
-            # Remove window decorations but keep it accessible to virtual keyboard
+            # Use geometry to maximize window for touchscreens
+            self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+            # Keep window decorations minimal but allow virtual keyboard
             self.root.overrideredirect(False)
         else:
             # Use fullscreen for larger displays
@@ -78,18 +78,23 @@ class TouchCalendar:
             if self.fullscreen:
                 # Exit fullscreen - allow virtual keyboard
                 self.root.attributes('-fullscreen', False)
-                self.root.state('normal')
-                # Maximize window but keep title bar
-                self.root.state('zoomed')
+                # Use geometry instead of state for better compatibility
+                screen_width = self.root.winfo_screenwidth()
+                screen_height = self.root.winfo_screenheight()
+                self.root.geometry(f"{screen_width}x{screen_height-50}+0+0")
                 self.fullscreen = False
             else:
                 # Enter fullscreen
                 self.root.attributes('-fullscreen', True)
                 self.fullscreen = True
-        except:
+        except Exception as e:
             # Fallback for different platforms
-            current = self.root.attributes('-fullscreen')
-            self.root.attributes('-fullscreen', not current)
+            print(f"Fullscreen toggle error: {e}")
+            try:
+                current = self.root.attributes('-fullscreen')
+                self.root.attributes('-fullscreen', not current)
+            except:
+                pass
         
     def load_config(self):
         """Load configuration settings"""
