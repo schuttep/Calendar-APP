@@ -25,6 +25,7 @@ class TouchCalendar:
         self.load_tasks()
         self.current_date = datetime.date.today()
         self.selected_date = None
+        self.view_mode = 'month'  # 'month' or 'week'
         self.create_widgets()
         self.update_calendar()
         
@@ -391,7 +392,10 @@ class TouchCalendar:
                                            e['start_time'] == event['start_time'] 
                                            for e in self.events[date_str])
                                 if not exists:
-                                    self.events[date_str].append(event.copy())
+                                    # Create the calendar event
+                                    calendar_event = event.copy()
+                                    calendar_event['category'] = 'class'  # Mark as class event
+                                    self.events[date_str].append(calendar_event)
                                     imported_count += 1
                                     event_count += 1
                             
@@ -410,7 +414,10 @@ class TouchCalendar:
                                e['start_time'] == event['start_time'] 
                                for e in self.events[date_str])
                     if not exists:
-                        self.events[date_str].append(event)
+                        # Create the calendar event
+                        calendar_event = event.copy()
+                        calendar_event['category'] = 'class'  # Mark as class event
+                        self.events[date_str].append(calendar_event)
                         imported_count += 1
                         print(f"  Added single event for {date_str}")
                     else:
@@ -605,6 +612,14 @@ class TouchCalendar:
         )
         self.next_month_btn.pack(side=tk.RIGHT, padx=(10, 0))
         
+        # View toggle button
+        self.view_toggle_btn = tk.Button(
+            self.header_frame, text="Week", font=self.button_font,
+            command=self.toggle_view, bg='lightyellow',
+            relief='raised', bd=2, width=6
+        )
+        self.view_toggle_btn.pack(side=tk.RIGHT, padx=(10, 0))
+        
         # Today button
         self.today_btn = tk.Button(
             self.header_frame, text="Today", font=self.button_font,
@@ -698,6 +713,13 @@ class TouchCalendar:
         
     def update_calendar(self):
         """Update the calendar display"""
+        if self.view_mode == 'month':
+            self.update_month_view()
+        else:
+            self.update_week_view()
+    
+    def update_month_view(self):
+        """Update the month calendar display"""
         # Update month/year label
         month_name = calendar.month_name[self.current_date.month]
         self.month_year_label.config(
@@ -784,6 +806,113 @@ class TouchCalendar:
         task_count = sum(len(class_tasks) for daily_tasks in self.daily_tasks.values() for class_tasks in daily_tasks.values())
         self.status_label.config(text=f"Events: {event_count} | Tasks: {task_count}")
         
+    def update_week_view(self):
+        """Update the week calendar display"""
+        # Get the week containing the current date
+        start_of_week = self.current_date - datetime.timedelta(days=self.current_date.weekday())
+        if not self.config.get('start_week_monday', True):
+            start_of_week = start_of_week - datetime.timedelta(days=1)
+            
+        week_dates = [start_of_week + datetime.timedelta(days=i) for i in range(7)]
+        
+        # Update month/year label to show week range
+        start_str = start_of_week.strftime('%b %d')
+        end_str = week_dates[-1].strftime('%b %d, %Y')
+        self.month_year_label.config(text=f"{start_str} - {end_str}")
+        
+        # Clear existing calendar
+        for widget in self.day_labels_frame.winfo_children():
+            widget.destroy()
+        for widget in self.calendar_grid_frame.winfo_children():
+            widget.destroy()
+            
+        # Day labels
+        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        if not self.config.get('start_week_monday', True):
+            days = ['Sun'] + days[:-1]
+            
+        for i, day in enumerate(days):
+            label = tk.Label(
+                self.day_labels_frame, text=day, font=self.button_font,
+                bg='lightgray', relief='raised', bd=1
+            )
+            label.grid(row=0, column=i, sticky='nsew', padx=1, pady=1)
+            self.day_labels_frame.columnconfigure(i, weight=1)
+        
+        # Week view - show one row with more detail
+        today = datetime.date.today()
+        self.calendar_grid_frame.rowconfigure(0, weight=1)
+        
+        for day_num, date_obj in enumerate(week_dates):
+            self.calendar_grid_frame.columnconfigure(day_num, weight=1)
+            
+            date_str = date_obj.isoformat()
+            
+            # Check if this date has events
+            has_events = date_str in self.events and len(self.events[date_str]) > 0
+            has_tasks = date_str in self.daily_tasks and len(self.daily_tasks[date_str]) > 0
+            
+            # Determine background color
+            if date_obj == today:
+                bg_color = 'lightgreen'
+            elif date_obj == self.selected_date:
+                bg_color = 'yellow'
+            elif has_events and has_tasks:
+                bg_color = 'orange'
+            elif has_events:
+                bg_color = 'lightcoral'
+            elif has_tasks:
+                bg_color = 'lightblue'
+            else:
+                bg_color = 'white'
+            
+            # Create frame for this day
+            day_frame = tk.Frame(self.calendar_grid_frame, bg=bg_color, relief='raised', bd=2)
+            day_frame.grid(row=0, column=day_num, sticky='nsew', padx=1, pady=1)
+            
+            # Day number button
+            day_btn = tk.Button(
+                day_frame, text=str(date_obj.day),
+                font=self.button_font, bg=bg_color,
+                relief='flat', bd=0,
+                command=lambda d=date_obj: self.select_date(d)
+            )
+            day_btn.pack(fill=tk.X)
+            
+            # Show events for this day
+            if has_events:
+                events_for_day = self.events[date_str][:3]  # Show up to 3 events
+                for event in events_for_day:
+                    event_text = f"{event['start_time']} {event['title'][:15]}"
+                    if len(event['title']) > 15:
+                        event_text += "..."
+                    
+                    # Color code by event type
+                    if event.get('category') == 'class':
+                        event_bg = 'lightsteelblue'
+                    else:
+                        event_bg = 'mistyrose'
+                    
+                    event_label = tk.Label(
+                        day_frame, text=event_text,
+                        font=('Arial', 8), bg=event_bg,
+                        wraplength=80, justify=tk.LEFT
+                    )
+                    event_label.pack(fill=tk.X, pady=1)
+                
+                if len(self.events[date_str]) > 3:
+                    more_label = tk.Label(
+                        day_frame, text=f"+{len(self.events[date_str]) - 3} more",
+                        font=('Arial', 7), fg='gray'
+                    )
+                    more_label.pack()
+            
+        # Update status
+        week_events = sum(len(self.events.get(date.isoformat(), [])) for date in week_dates)
+        week_tasks = sum(len(class_tasks) for date in week_dates 
+                        for class_tasks in self.daily_tasks.get(date.isoformat(), {}).values())
+        self.status_label.config(text=f"This week - Events: {week_events} | Tasks: {week_tasks}")
+        
     def select_date(self, date_obj: datetime.date):
         """Handle date selection"""
         self.selected_date = date_obj
@@ -797,19 +926,35 @@ class TouchCalendar:
             self.show_daily_tasks(date_obj)
             
     def prev_month(self):
-        """Navigate to previous month"""
-        if self.current_date.month == 1:
-            self.current_date = self.current_date.replace(year=self.current_date.year - 1, month=12)
-        else:
-            self.current_date = self.current_date.replace(month=self.current_date.month - 1)
+        """Navigate to previous month/week"""
+        if self.view_mode == 'month':
+            if self.current_date.month == 1:
+                self.current_date = self.current_date.replace(year=self.current_date.year - 1, month=12)
+            else:
+                self.current_date = self.current_date.replace(month=self.current_date.month - 1)
+        else:  # week view
+            self.current_date = self.current_date - datetime.timedelta(weeks=1)
         self.update_calendar()
         
     def next_month(self):
-        """Navigate to next month"""
-        if self.current_date.month == 12:
-            self.current_date = self.current_date.replace(year=self.current_date.year + 1, month=1)
+        """Navigate to next month/week"""
+        if self.view_mode == 'month':
+            if self.current_date.month == 12:
+                self.current_date = self.current_date.replace(year=self.current_date.year + 1, month=1)
+            else:
+                self.current_date = self.current_date.replace(month=self.current_date.month + 1)
+        else:  # week view
+            self.current_date = self.current_date + datetime.timedelta(weeks=1)
+        self.update_calendar()
+        
+    def toggle_view(self):
+        """Toggle between month and week view"""
+        if self.view_mode == 'month':
+            self.view_mode = 'week'
+            self.view_toggle_btn.config(text="Month")
         else:
-            self.current_date = self.current_date.replace(month=self.current_date.month + 1)
+            self.view_mode = 'month' 
+            self.view_toggle_btn.config(text="Week")
         self.update_calendar()
         
     def go_to_today(self):
