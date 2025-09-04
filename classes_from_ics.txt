@@ -1,15 +1,27 @@
 # Classes extracted from ICS calendar import
 # This file was auto-generated from your imported calendar
-# From: Fall 2024 - Urbana-Champaign.ics
+# From: Fall 2025 - Urbana-Champaign.ics
 
-CS 225 - Data Structures
-  [medium] Review today's material - Review notes and materials from CS 225 - Data Structures
-  [high] Complete homework/assignments - Work on any assignments for CS 225 - Data Structures
-  [medium] Prepare for next class - Read ahead and prepare for next CS 225 - Data Structures session
-  [medium] Study/practice problems - Practice problems or study concepts from CS 225 - Data Structures
+ECE 374 - Intro to Algs & Models of Comp
+  [medium] Review today's material - Review notes and materials from ECE 374 - Intro to Algs & Models of Comp
+  [high] Complete homework/assignments - Work on any assignments for ECE 374 - Intro to Algs & Models of Comp
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 374 - Intro to Algs & Models of Comp session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 374 - Intro to Algs & Models of Comp
 
-ECE 391 - Computer Systems Engineering
-  [medium] Review today's material - Review notes and materials from ECE 391 - Computer Systems Engineering
-  [high] Complete homework/assignments - Work on any assignments for ECE 391 - Computer Systems Engineering
-  [medium] Prepare for next class - Read ahead and prepare for next ECE 391 - Computer Systems Engineering session
-  [medium] Study/practice problems - Practice problems or study concepts from ECE 391 - Computer Systems Engineering
+ECE 408 - Applied Parallel Programming
+  [medium] Review today's material - Review notes and materials from ECE 408 - Applied Parallel Programming
+  [high] Complete homework/assignments - Work on any assignments for ECE 408 - Applied Parallel Programming
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 408 - Applied Parallel Programming session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 408 - Applied Parallel Programming
+
+HK 104 - Ice Skating
+  [medium] Review today's material - Review notes and materials from HK 104 - Ice Skating
+  [high] Complete homework/assignments - Work on any assignments for HK 104 - Ice Skating
+  [medium] Prepare for next class - Read ahead and prepare for next HK 104 - Ice Skating session
+  [medium] Study/practice problems - Practice problems or study concepts from HK 104 - Ice Skating
+
+ECE 484 - Principles of Safe Autonomy
+  [medium] Review today's material - Review notes and materials from ECE 484 - Principles of Safe Autonomy
+  [high] Complete homework/assignments - Work on any assignments for ECE 484 - Principles of Safe Autonomy
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 484 - Principles of Safe Autonomy session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 484 - Principles of Safe Autonomy

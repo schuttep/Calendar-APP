@@ -309,23 +309,34 @@ class TouchCalendar:
     
     def import_ics_events(self, file_path):
         """Import events from ICS file"""
+        print(f"Starting ICS import from: {file_path}")
         events = self.parse_ics_file(file_path)
+        print(f"Parsed {len(events)} events from ICS file")
         imported_count = 0
         
-        for ics_event in events:
+        for i, ics_event in enumerate(events):
             try:
+                print(f"\nProcessing event {i+1}/{len(events)}")
+                
                 # Extract basic event info
                 summary = ics_event.get('SUMMARY', 'Untitled Event')
                 description = ics_event.get('DESCRIPTION', '').replace('\\n', '\n')
                 location = ics_event.get('LOCATION', '')
                 
+                print(f"  Summary: {summary}")
+                print(f"  Location: {location}")
+                
                 # Parse start time
                 start_dt = self.parse_ics_datetime(ics_event.get('DTSTART', ''))
                 if not start_dt:
+                    print(f"  Skipping - no valid start time")
                     continue
                     
                 # Parse end time
                 end_dt = self.parse_ics_datetime(ics_event.get('DTEND', ''), start_dt)
+                
+                print(f"  Start: {start_dt}")
+                print(f"  End: {end_dt}")
                 
                 # Create event object
                 event = {
@@ -341,10 +352,15 @@ class TouchCalendar:
                 
                 # Handle recurring events (RRULE)
                 rrule = ics_event.get('RRULE', '')
+                print(f"  RRULE: {rrule}")
+                
                 if rrule and 'FREQ=WEEKLY' in rrule:
                     # Parse weekly recurring events
                     until_match = re.search(r'UNTIL=(\d{8})', rrule)
                     byday_match = re.search(r'BYDAY=([^;]+)', rrule)
+                    
+                    print(f"  Until match: {until_match.group(1) if until_match else 'None'}")
+                    print(f"  Days match: {byday_match.group(1) if byday_match else 'None'}")
                     
                     if byday_match:
                         days = byday_match.group(1).split(',')
@@ -357,8 +373,12 @@ class TouchCalendar:
                             until_str = until_match.group(1)
                             until_date = datetime.datetime.strptime(until_str, '%Y%m%d').date()
                         
+                        print(f"  Creating recurring events until: {until_date}")
+                        print(f"  Days: {days}")
+                        
                         # Create recurring events
                         current_date = start_dt.date()
+                        event_count = 0
                         while current_date <= until_date:
                             weekday = current_date.weekday()
                             if any(day_map.get(day) == weekday for day in days):
@@ -373,10 +393,14 @@ class TouchCalendar:
                                 if not exists:
                                     self.events[date_str].append(event.copy())
                                     imported_count += 1
+                                    event_count += 1
                             
                             current_date += datetime.timedelta(days=1)
+                        
+                        print(f"  Created {event_count} recurring events")
                 else:
                     # Single event
+                    print(f"  Creating single event")
                     date_str = start_dt.date().isoformat()
                     if date_str not in self.events:
                         self.events[date_str] = []
@@ -388,10 +412,17 @@ class TouchCalendar:
                     if not exists:
                         self.events[date_str].append(event)
                         imported_count += 1
+                        print(f"  Added single event for {date_str}")
+                    else:
+                        print(f"  Event already exists for {date_str}")
                         
             except Exception as e:
                 print(f"Error importing event: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
+        
+        print(f"Total events imported: {imported_count}")
         
         # Save events and update calendar
         self.save_events()
@@ -468,48 +499,65 @@ class TouchCalendar:
             return None
             
         title = event_title.strip()
+        print(f"Parsing title: '{title}'")  # Debug output
+        
+        # Clean up HTML entities
+        title = title.replace('&amp;', '&')
         
         # Common patterns for university class titles:
-        # "Data Structures CS 225 AL1" -> "CS 225 - Data Structures"
-        # "Computer Systems Engineering ECE 391 AL" -> "ECE 391 - Computer Systems Engineering"
-        # "Physics 101 Lecture" -> "Physics 101"
+        # "Intro to Algs & Models of Comp ECE 374 BYA" -> "ECE 374 - Intro to Algs & Models of Comp"
+        # "Applied Parallel Programming ECE 408 AL1" -> "ECE 408 - Applied Parallel Programming"
+        # "Principles of Safe Autonomy ECE 484 AL1" -> "ECE 484 - Principles of Safe Autonomy"
         
-        # Pattern 1: Subject Name + Course Code (like "Data Structures CS 225")
         import re
-        pattern1 = r'^(.+?)\s+([A-Z]{2,4}\s+\d{3})'
+        
+        # Pattern 1: Subject Name + Course Code + Section (like "Intro to Algs & Models of Comp ECE 374 BYA")
+        pattern1 = r'^(.+?)\s+([A-Z]{2,4}\s+\d{3})\s+[A-Z]{1,3}\d*$'
         match1 = re.match(pattern1, title)
         if match1:
             subject = match1.group(1).strip()
             course_code = match1.group(2).strip()
-            return f"{course_code} - {subject}"
+            result = f"{course_code} - {subject}"
+            print(f"Pattern 1 match: '{result}'")
+            return result
         
-        # Pattern 2: Course Code + Subject Name (like "CS225 Data Structures")
-        pattern2 = r'^([A-Z]{2,4}\s*\d{3})\s+(.+?)(\s+(AL\d*|AD\d*|Lab|Discussion|Lecture).*)?$'
+        # Pattern 2: Course Code + Subject Name (like "ECE374 Applied Programming")
+        pattern2 = r'^([A-Z]{2,4}\s*\d{3})\s+(.+?)(\s+[A-Z]{1,3}\d*)?$'
         match2 = re.match(pattern2, title)
         if match2:
             course_code = match2.group(1).strip()
             subject = match2.group(2).strip()
-            return f"{course_code} - {subject}"
+            # Remove section info from subject
+            subject = re.sub(r'\s+(AL\d*|AD\d*|Lab|Discussion|Lecture|BYA|BL\d*|AB\d*).*$', '', subject)
+            result = f"{course_code} - {subject}"
+            print(f"Pattern 2 match: '{result}'")
+            return result
             
-        # Pattern 3: Simple course code pattern (like "MATH 101")
+        # Pattern 3: Simple course code pattern (like "MATH 101" or "HK 104")
         pattern3 = r'([A-Z]{2,4}\s+\d{3})'
         match3 = re.search(pattern3, title)
         if match3:
             course_code = match3.group(1)
-            # Try to get subject name before or after the code
+            # Try to get subject name before the code
             remaining = title.replace(course_code, '').strip()
-            remaining = re.sub(r'\s+(AL\d*|AD\d*|Lab|Discussion|Lecture).*$', '', remaining)
-            if remaining:
-                return f"{course_code} - {remaining}"
+            # Remove section codes
+            remaining = re.sub(r'\s+[A-Z]{1,3}\d*$', '', remaining)
+            if remaining and len(remaining) > 2:
+                result = f"{course_code} - {remaining}"
+                print(f"Pattern 3 match: '{result}'")
+                return result
             else:
+                print(f"Pattern 3 simple match: '{course_code}'")
                 return course_code
         
-        # Pattern 4: Just return the title if it looks like a class (contains numbers)
-        if re.search(r'\d', title) and len(title) < 50:
+        # Pattern 4: Just return cleaned title if it looks like a class
+        if re.search(r'[A-Z]{2,4}\s+\d{2,3}', title):
             # Clean up common suffixes
-            cleaned = re.sub(r'\s+(AL\d*|AD\d*|Lab|Discussion|Lecture|Section).*$', '', title)
+            cleaned = re.sub(r'\s+[A-Z]{1,3}\d*$', '', title)
+            print(f"Pattern 4 fallback: '{cleaned}'")
             return cleaned.strip()
         
+        print(f"No pattern matched for: '{title}'")
         return None
             
     def save_events(self):
@@ -834,17 +882,20 @@ class TouchCalendar:
         
     def import_calendar(self):
         """Import calendar from ICS file"""
-        # Check if we have an ICS file in the current directory first
-        if os.path.exists("Fall 2024 - Urbana-Champaign.ics"):
-            file_path = "Fall 2024 - Urbana-Champaign.ics"
-            if messagebox.askyesno("Import Calendar", 
-                "Found 'Fall 2024 - Urbana-Champaign.ics' in the app directory. Import this file?"):
-                pass  # Use this file
-            else:
-                file_path = None
-        else:
-            file_path = None
-            
+        # Check for both Fall 2024 and Fall 2025 files
+        default_files = [
+            "Fall 2025 - Urbana-Champaign.ics",
+            "Fall 2024 - Urbana-Champaign.ics"
+        ]
+        
+        file_path = None
+        for filename in default_files:
+            if os.path.exists(filename):
+                if messagebox.askyesno("Import Calendar", 
+                    f"Found '{filename}' in the app directory. Import this file?"):
+                    file_path = filename
+                    break
+        
         # If no default file or user declined, show file dialog
         if not file_path:
             file_path = filedialog.askopenfilename(
@@ -854,6 +905,7 @@ class TouchCalendar:
         
         if file_path:
             try:
+                print(f"Importing from: {file_path}")
                 count = self.import_ics_events(file_path)
                 class_count = len([cls for cls in self.class_templates.keys() 
                                  if any("Review today's material" in task.get('title', '') 
@@ -867,6 +919,9 @@ class TouchCalendar:
                 messagebox.showinfo("Import Complete", message)
             except Exception as e:
                 messagebox.showerror("Import Error", f"Failed to import calendar: {str(e)}")
+                print(f"Import error details: {e}")
+                import traceback
+                traceback.print_exc()
                 
     def toggle_virtual_keyboard(self):
         """Toggle virtual keyboard on touchscreen devices"""
