@@ -37,16 +37,10 @@ class TouchCalendar:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # For small touchscreens, use maximized window instead of fullscreen
-        # This allows virtual keyboard to appear
-        if screen_width <= 800 and screen_height <= 600:
-            # Use geometry to maximize window for touchscreens
-            self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-            # Keep window decorations minimal but allow virtual keyboard
-            self.root.overrideredirect(False)
-        else:
-            # Use fullscreen for larger displays
-            self.root.attributes('-fullscreen', True)
+        # True kiosk mode - hide taskbar and window decorations
+        self.root.overrideredirect(True)  # Remove window decorations
+        self.root.attributes('-topmost', True)  # Always on top
+        self.root.geometry(f"{screen_width}x{screen_height}+0+0")  # Full screen size
         
         # Configure for common Raspberry Pi touchscreen resolutions
         if screen_width <= 800 and screen_height <= 600:
@@ -68,32 +62,38 @@ class TouchCalendar:
             self.date_font = ('Arial', 14)
             self.button_size = 80
             
-        # Bind keys for window management
-        self.root.bind('<Escape>', self.toggle_fullscreen)
-        self.root.bind('<F11>', self.toggle_fullscreen)
-        self.fullscreen = screen_width > 800 or screen_height > 600
+        # Bind keys for window management  
+        self.root.bind('<Escape>', self.toggle_kiosk_mode)
+        self.root.bind('<F11>', self.toggle_kiosk_mode)
+        self.kiosk_mode = True  # Start in kiosk mode
         
-    def toggle_fullscreen(self, event=None):
-        """Toggle fullscreen mode - especially useful for touchscreen keyboard access"""
+    def toggle_kiosk_mode(self, event=None):
+        """Toggle kiosk mode - especially useful for touchscreen keyboard access"""
         try:
-            if self.fullscreen:
-                # Exit fullscreen - allow virtual keyboard
-                self.root.attributes('-fullscreen', False)
-                # Use geometry instead of state for better compatibility
+            if self.kiosk_mode:
+                # Exit kiosk mode - show window decorations and allow taskbar
+                self.root.overrideredirect(False)
+                self.root.attributes('-topmost', False)
+                # Make window smaller to show taskbar
                 screen_width = self.root.winfo_screenwidth()
                 screen_height = self.root.winfo_screenheight()
                 self.root.geometry(f"{screen_width}x{screen_height-50}+0+0")
-                self.fullscreen = False
+                self.kiosk_mode = False
             else:
-                # Enter fullscreen
-                self.root.attributes('-fullscreen', True)
-                self.fullscreen = True
+                # Enter kiosk mode - hide decorations and taskbar
+                self.root.overrideredirect(True)
+                self.root.attributes('-topmost', True)
+                screen_width = self.root.winfo_screenwidth()
+                screen_height = self.root.winfo_screenheight()
+                self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+                self.kiosk_mode = True
         except Exception as e:
             # Fallback for different platforms
-            print(f"Fullscreen toggle error: {e}")
+            print(f"Kiosk mode toggle error: {e}")
             try:
-                current = self.root.attributes('-fullscreen')
-                self.root.attributes('-fullscreen', not current)
+                screen_width = self.root.winfo_screenwidth()
+                screen_height = self.root.winfo_screenheight()
+                self.root.geometry(f"{screen_width}x{screen_height}+0+0")
             except:
                 pass
         
