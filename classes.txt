@@ -1,52 +1,43 @@
-# Class Templates and Daily Tasks
+# Class Templates and Daily Tasks - ICS Classes Only
 # Format: CLASS_NAME followed by tasks (one per line, indented with 2 spaces)
 # Priority levels: high, medium, low
 # Format: [priority] Task Title - Task Description
+# These classes are imported from your ICS calendar file
 
-MATH
-  [high] Complete homework assignment - Finish problems 1-20 from chapter 5
-  [medium] Review notes from today's lesson - Go over derivative rules and examples
-  [high] Study for upcoming quiz - Review chapters 4-5, focus on chain rule
-  [low] Organize math binder - File handouts and clean up notes
+ECE 374 - Intro to Algs & Models of Comp
+  [medium] Review today's material - Review notes and materials from ECE 374
+  [high] Complete homework/assignments - Work on any assignments for ECE 374
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 374 session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 374
 
-SCIENCE
-  [high] Lab report due Friday - Write conclusion for chemistry experiment
-  [medium] Read textbook chapter 8 - Study cellular respiration processes
-  [high] Prepare for test next week - Review all notes from units 1-3
-  [medium] Complete practice problems - Do worksheets 15-17
+HK 104 - Ice Skating
+  [medium] Review today's material - Review notes and materials from HK 104
+  [high] Complete homework/assignments - Work on any assignments for HK 104
+  [medium] Prepare for next class - Read ahead and prepare for next HK 104 session
+  [medium] Study/practice problems - Practice problems or study concepts from HK 104
 
-ENGLISH
-  [high] Essay draft due tomorrow - Finish introduction and first body paragraph
-  [medium] Read assigned chapters - Complete chapters 5-7 of current novel
-  [low] Vocabulary practice - Study new words from this week's list
-  [medium] Peer review assignment - Review classmate's rough draft
+ECE 484 - Principles of Safe Autonomy
+  [medium] Review today's material - Review notes and materials from ECE 484
+  [high] Complete homework/assignments - Work on any assignments for ECE 484
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 484 session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 484
 
-HISTORY
-  [medium] Research project outline - Create timeline for American Revolution topic
-  [low] Read primary source documents - Review Declaration of Independence analysis
-  [high] Study guide for midterm - Complete chapters 1-8 review questions
-  [medium] Watch documentary - Take notes on Civil War film assigned
+ECE 408 - Applied Parallel Programming
+  [medium] Review today's material - Review notes and materials from ECE 408
+  [high] Complete homework/assignments - Work on any assignments for ECE 408
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 408 session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 408
 
-COMPUTER SCIENCE
-  [high] Programming assignment - Complete Python loops and functions project
-  [medium] Debug yesterday's code - Fix errors in calculator program
-  [low] Read about data structures - Study arrays and lists in textbook
-  [high] Prepare for coding interview - Practice algorithm problems online
+JAM LLC
+  [high] Check project status - Review current project progress and milestones
+  [medium] Client communication - Respond to emails and update clients on progress
+  [medium] Business development - Work on proposals or new business opportunities
+  [low] Administrative tasks - Handle invoicing, documentation, and paperwork
 
-PE
-  [medium] Fitness log entry - Record today's workout and times
-  [low] Stretch routine - Complete 15-minute flexibility exercises
-  [medium] Practice skills - Work on basketball free throws for 20 minutes
-  [low] Equipment check - Make sure gym clothes are clean for tomorrow
-
-ART
-  [high] Portfolio piece - Continue work on self-portrait drawing
-  [medium] Color theory homework - Complete color wheel assignment
-  [low] Sketch daily object - Draw something from observation
-  [medium] Art history research - Read about Renaissance painting techniques
-
-MUSIC
-  [high] Practice instrument - 30 minutes of piano scales and pieces
-  [medium] Music theory homework - Complete chord progression exercises
+Miscellaneous
+  [medium] Personal errands - Complete any personal tasks or errands
+  [low] Organize workspace - Clean and organize study/work area
+  [medium] Review daily schedule - Plan and prioritize upcoming tasks
+  [low] General maintenance - Handle any miscellaneous tasks or follow-ups
   [low] Listen to assigned pieces - Analyze classical compositions from playlist
   [high] Prepare for recital - Practice performance pieces until confident

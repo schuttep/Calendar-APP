@@ -1,18 +1,11 @@
 # Classes extracted from ICS calendar import
 # This file was auto-generated from your imported calendar
-# From: Fall 2025 - Urbana-Champaign.ics
 
-ECE 374 - Intro to Algs & Models of Comp
-  [medium] Review today's material - Review notes and materials from ECE 374 - Intro to Algs & Models of Comp
-  [high] Complete homework/assignments - Work on any assignments for ECE 374 - Intro to Algs & Models of Comp
-  [medium] Prepare for next class - Read ahead and prepare for next ECE 374 - Intro to Algs & Models of Comp session
-  [medium] Study/practice problems - Practice problems or study concepts from ECE 374 - Intro to Algs & Models of Comp
-
-ECE 408 - Applied Parallel Programming
-  [medium] Review today's material - Review notes and materials from ECE 408 - Applied Parallel Programming
-  [high] Complete homework/assignments - Work on any assignments for ECE 408 - Applied Parallel Programming
-  [medium] Prepare for next class - Read ahead and prepare for next ECE 408 - Applied Parallel Programming session
-  [medium] Study/practice problems - Practice problems or study concepts from ECE 408 - Applied Parallel Programming
+ECE 374 - Intro to Algs &amp\; Models of Comp
+  [medium] Review today's material - Review notes and materials from ECE 374 - Intro to Algs &amp\; Models of Comp
+  [high] Complete homework/assignments - Work on any assignments for ECE 374 - Intro to Algs &amp\; Models of Comp
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 374 - Intro to Algs &amp\; Models of Comp session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 374 - Intro to Algs &amp\; Models of Comp
 
 HK 104 - Ice Skating
   [medium] Review today's material - Review notes and materials from HK 104 - Ice Skating
@@ -25,3 +18,10 @@ ECE 484 - Principles of Safe Autonomy
   [high] Complete homework/assignments - Work on any assignments for ECE 484 - Principles of Safe Autonomy
   [medium] Prepare for next class - Read ahead and prepare for next ECE 484 - Principles of Safe Autonomy session
   [medium] Study/practice problems - Practice problems or study concepts from ECE 484 - Principles of Safe Autonomy
+
+ECE 408 - Applied Parallel Programming
+  [medium] Review today's material - Review notes and materials from ECE 408 - Applied Parallel Programming
+  [high] Complete homework/assignments - Work on any assignments for ECE 408 - Applied Parallel Programming
+  [medium] Prepare for next class - Read ahead and prepare for next ECE 408 - Applied Parallel Programming session
+  [medium] Study/practice problems - Practice problems or study concepts from ECE 408 - Applied Parallel Programming
+

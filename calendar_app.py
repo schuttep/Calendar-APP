@@ -438,7 +438,30 @@ class TouchCalendar:
         # Extract class names from imported events and create templates
         self.extract_class_templates_from_events()
         
+        # Debug: Print what events were actually stored
+        self.debug_stored_events()
+        
         return imported_count
+        
+    def debug_stored_events(self):
+        """Debug function to show what events are actually stored"""
+        print(f"\n=== STORED EVENTS DEBUG ===")
+        print(f"Total dates with events: {len(self.events)}")
+        
+        # Show events for next 2 weeks for debugging
+        start_date = datetime.date.today()
+        for i in range(14):
+            check_date = start_date + datetime.timedelta(days=i)
+            date_str = check_date.isoformat()
+            
+            if date_str in self.events and self.events[date_str]:
+                print(f"\n{check_date.strftime('%A %Y-%m-%d')}:")
+                for event in self.events[date_str]:
+                    print(f"  - {event.get('start_time', 'No time')} {event['title']} ({event.get('category', 'no category')})")
+            else:
+                print(f"{check_date.strftime('%A %Y-%m-%d')}: No events")
+        
+        print(f"=== END DEBUG ===\n")
         
     def extract_class_templates_from_events(self):
         """Extract class names from imported events and create basic task templates"""
@@ -809,11 +832,19 @@ class TouchCalendar:
     def update_week_view(self):
         """Update the week calendar display"""
         # Get the week containing the current date
-        start_of_week = self.current_date - datetime.timedelta(days=self.current_date.weekday())
-        if not self.config.get('start_week_monday', True):
-            start_of_week = start_of_week - datetime.timedelta(days=1)
+        if self.config.get('start_week_monday', True):
+            # Monday start - find Monday of current week
+            start_of_week = self.current_date - datetime.timedelta(days=self.current_date.weekday())
+            days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        else:
+            # Sunday start - find Sunday of current week
+            days_since_sunday = (self.current_date.weekday() + 1) % 7
+            start_of_week = self.current_date - datetime.timedelta(days=days_since_sunday)
+            days_order = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
             
         week_dates = [start_of_week + datetime.timedelta(days=i) for i in range(7)]
+        
+        print(f"Week view: {[d.strftime('%Y-%m-%d %A') for d in week_dates]}")  # Debug
         
         # Update month/year label to show week range
         start_str = start_of_week.strftime('%b %d')
@@ -827,11 +858,7 @@ class TouchCalendar:
             widget.destroy()
             
         # Day labels
-        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        if not self.config.get('start_week_monday', True):
-            days = ['Sun'] + days[:-1]
-            
-        for i, day in enumerate(days):
+        for i, day in enumerate(days_order):
             label = tk.Label(
                 self.day_labels_frame, text=day, font=self.button_font,
                 bg='lightgray', relief='raised', bd=1
@@ -848,9 +875,18 @@ class TouchCalendar:
             
             date_str = date_obj.isoformat()
             
+            print(f"Checking date {date_str} for events...")  # Debug
+            
             # Check if this date has events
             has_events = date_str in self.events and len(self.events[date_str]) > 0
             has_tasks = date_str in self.daily_tasks and len(self.daily_tasks[date_str]) > 0
+            
+            if has_events:
+                print(f"  Found {len(self.events[date_str])} events for {date_str}")
+                for event in self.events[date_str]:
+                    print(f"    - {event['title']} at {event['start_time']}")
+            else:
+                print(f"  No events found for {date_str}")
             
             # Determine background color
             if date_obj == today:
@@ -870,9 +906,10 @@ class TouchCalendar:
             day_frame = tk.Frame(self.calendar_grid_frame, bg=bg_color, relief='raised', bd=2)
             day_frame.grid(row=0, column=day_num, sticky='nsew', padx=1, pady=1)
             
-            # Day number button
+            # Day number and date button
+            day_text = f"{date_obj.day}\n{date_obj.strftime('%m/%d')}"
             day_btn = tk.Button(
-                day_frame, text=str(date_obj.day),
+                day_frame, text=day_text,
                 font=self.button_font, bg=bg_color,
                 relief='flat', bd=0,
                 command=lambda d=date_obj: self.select_date(d)
@@ -881,29 +918,35 @@ class TouchCalendar:
             
             # Show events for this day
             if has_events:
-                events_for_day = self.events[date_str][:3]  # Show up to 3 events
-                for event in events_for_day:
-                    event_text = f"{event['start_time']} {event['title'][:15]}"
-                    if len(event['title']) > 15:
+                events_for_day = self.events[date_str]
+                # Sort events by start time
+                events_for_day = sorted(events_for_day, key=lambda x: x.get('start_time', '00:00'))
+                
+                # Show up to 4 events
+                for i, event in enumerate(events_for_day[:4]):
+                    event_text = f"{event.get('start_time', '')} {event['title'][:12]}"
+                    if len(event['title']) > 12:
                         event_text += "..."
                     
                     # Color code by event type
                     if event.get('category') == 'class':
                         event_bg = 'lightsteelblue'
+                        text_color = 'darkblue'
                     else:
-                        event_bg = 'mistyrose'
+                        event_bg = 'mistyrose' 
+                        text_color = 'darkred'
                     
                     event_label = tk.Label(
                         day_frame, text=event_text,
-                        font=('Arial', 8), bg=event_bg,
-                        wraplength=80, justify=tk.LEFT
+                        font=('Arial', 7), bg=event_bg, fg=text_color,
+                        wraplength=70, justify=tk.LEFT, relief='solid', bd=1
                     )
-                    event_label.pack(fill=tk.X, pady=1)
+                    event_label.pack(fill=tk.X, pady=1, padx=1)
                 
-                if len(self.events[date_str]) > 3:
+                if len(events_for_day) > 4:
                     more_label = tk.Label(
-                        day_frame, text=f"+{len(self.events[date_str]) - 3} more",
-                        font=('Arial', 7), fg='gray'
+                        day_frame, text=f"+{len(events_for_day) - 4} more",
+                        font=('Arial', 6), fg='gray', bg=bg_color
                     )
                     more_label.pack()
             
