@@ -10,10 +10,11 @@ import calendar
 import datetime
 import json
 import os
+import re
+import subprocess
 import sys
 from typing import Dict, List, Optional, Tuple
 import copy
-import re
 from urllib.parse import unquote
 
 class TouchCalendar:
@@ -37,10 +38,9 @@ class TouchCalendar:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # True kiosk mode - hide taskbar and window decorations
-        self.root.overrideredirect(True)  # Remove window decorations
-        self.root.attributes('-topmost', True)  # Always on top
-        self.root.geometry(f"{screen_width}x{screen_height}+0+0")  # Full screen size
+        # True kiosk mode - hide taskbar but allow dialogs to appear
+        self.root.attributes('-fullscreen', True)  # Use fullscreen instead of overrideredirect
+        self.root.attributes('-topmost', False)  # Don't force always on top to allow dialogs
         
         # Configure for common Raspberry Pi touchscreen resolutions
         if screen_width <= 800 and screen_height <= 600:
@@ -63,43 +63,39 @@ class TouchCalendar:
             self.button_size = 80
             
         # Bind keys for window management  
-        self.root.bind('<Escape>', self.toggle_kiosk_mode)
-        self.root.bind('<F11>', self.toggle_kiosk_mode)
-        self.kiosk_mode = True  # Start in kiosk mode
+        self.root.bind('<Escape>', self.toggle_fullscreen)
+        self.root.bind('<F11>', self.toggle_fullscreen)
+        self.fullscreen = True  # Start in fullscreen mode
         
-    def toggle_kiosk_mode(self, event=None):
-        """Toggle kiosk mode - especially useful for touchscreen keyboard access"""
+    def toggle_fullscreen(self, event=None):
+        """Toggle fullscreen mode - especially useful for touchscreen keyboard access"""
         try:
-            if self.kiosk_mode:
-                # Exit kiosk mode - show window decorations and allow taskbar
-                self.root.overrideredirect(False)
-                self.root.attributes('-topmost', False)
+            if self.fullscreen:
+                # Exit fullscreen - show taskbar and allow keyboard
+                self.root.attributes('-fullscreen', False)
                 # Make window smaller to show taskbar
                 screen_width = self.root.winfo_screenwidth()
                 screen_height = self.root.winfo_screenheight()
                 self.root.geometry(f"{screen_width}x{screen_height-50}+0+0")
-                self.kiosk_mode = False
+                self.fullscreen = False
             else:
-                # Enter kiosk mode - hide decorations and taskbar
-                self.root.overrideredirect(True)
-                self.root.attributes('-topmost', True)
-                screen_width = self.root.winfo_screenwidth()
-                screen_height = self.root.winfo_screenheight()
-                self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-                self.kiosk_mode = True
+                # Enter fullscreen mode - hide taskbar
+                self.root.attributes('-fullscreen', True)
+                self.fullscreen = True
         except Exception as e:
             # Fallback for different platforms
-            print(f"Kiosk mode toggle error: {e}")
+            print(f"Fullscreen toggle error: {e}")
             try:
-                screen_width = self.root.winfo_screenwidth()
-                screen_height = self.root.winfo_screenheight()
-                self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+                current = self.root.attributes('-fullscreen')
+                self.root.attributes('-fullscreen', not current)
             except:
                 pass
         
     def load_config(self):
         """Load configuration settings"""
-        self.config_file = "calendar_config.json"
+        # Get script directory for absolute file paths
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config_file = os.path.join(script_dir, "calendar_config.json")
         self.default_config = {
             'theme': 'light',
             'start_week_monday': True,
@@ -129,7 +125,9 @@ class TouchCalendar:
             
     def load_events(self):
         """Load events from JSON file"""
-        self.events_file = "calendar_events.json"
+        # Get script directory for absolute file paths
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.events_file = os.path.join(script_dir, "calendar_events.json")
         self.events = {}  # Format: {date_string: [event_dict, ...]}
         
         try:
@@ -142,8 +140,10 @@ class TouchCalendar:
             
     def load_tasks(self):
         """Load tasks and checklists from JSON file and classes from text file"""
-        self.tasks_file = "calendar_tasks.json"
-        self.classes_file = "classes.txt"
+        # Get script directory for absolute file paths
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.tasks_file = os.path.join(script_dir, "calendar_tasks.json")
+        self.classes_file = os.path.join(script_dir, "classes.txt")
         self.class_templates = {}  # Format: {class_name: [task_dict, ...]}
         self.daily_tasks = {}  # Format: {date_string: {class_name: [task_dict, ...]}}
         
@@ -166,7 +166,8 @@ class TouchCalendar:
         self.load_classes_from_file(self.classes_file)
         
         # Then load auto-generated classes from ICS import
-        ics_classes_file = "classes_from_ics.txt"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        ics_classes_file = os.path.join(script_dir, "classes_from_ics.txt")
         if os.path.exists(ics_classes_file):
             print(f"Loading auto-generated classes from {ics_classes_file}")
             self.load_classes_from_file(ics_classes_file)
