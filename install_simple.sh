@@ -56,6 +56,22 @@ else
     exit 1
 fi
 
+if [ -f "$SCRIPT_DIR/classes.txt" ]; then
+    cp "$SCRIPT_DIR/classes.txt" "$INSTALL_DIR/"
+    echo "✓ Copied classes.txt"
+else
+    echo "⚠ classes.txt not found - will create empty file"
+    touch "$INSTALL_DIR/classes.txt"
+fi
+
+# Copy any ICS files for calendar import
+for ics_file in "$SCRIPT_DIR"/*.ics; do
+    if [ -f "$ics_file" ]; then
+        cp "$ics_file" "$INSTALL_DIR/"
+        echo "✓ Copied $(basename "$ics_file")"
+    fi
+done
+
 # Create a simple service file
 echo ""
 echo "Step 4: Creating service file..."

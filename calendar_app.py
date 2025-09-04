@@ -5,7 +5,7 @@ A full-featured calendar app optimized for touchscreen displays
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog, font
+from tkinter import ttk, messagebox, simpledialog, font, filedialog
 import calendar
 import datetime
 import json
@@ -13,6 +13,8 @@ import os
 import sys
 from typing import Dict, List, Optional, Tuple
 import copy
+import re
+from urllib.parse import unquote
 
 class TouchCalendar:
     def __init__(self, root: tk.Tk):
@@ -108,27 +110,83 @@ class TouchCalendar:
             self.events = {}
             
     def load_tasks(self):
-        """Load tasks and checklists from JSON file"""
+        """Load tasks and checklists from JSON file and classes from text file"""
         self.tasks_file = "calendar_tasks.json"
+        self.classes_file = "classes.txt"
         self.class_templates = {}  # Format: {class_name: [task_dict, ...]}
         self.daily_tasks = {}  # Format: {date_string: {class_name: [task_dict, ...]}}
+        
+        # First load class templates from text file
+        self.load_class_templates()
         
         try:
             if os.path.exists(self.tasks_file):
                 with open(self.tasks_file, 'r') as f:
                     data = json.load(f)
-                    self.class_templates = data.get('class_templates', {})
+                    # Only load daily tasks from JSON, templates come from text file
                     self.daily_tasks = data.get('daily_tasks', {})
         except Exception as e:
             print(f"Error loading tasks: {e}")
-            self.class_templates = {}
             self.daily_tasks = {}
             
+    def load_class_templates(self):
+        """Load class templates from classes.txt file"""
+        try:
+            if os.path.exists(self.classes_file):
+                with open(self.classes_file, 'r', encoding='utf-8') as f:
+                    current_class = None
+                    for line in f:
+                        line = line.rstrip()
+                        
+                        # Skip empty lines and comments
+                        if not line or line.startswith('#'):
+                            continue
+                            
+                        # Class name (not indented)
+                        if not line.startswith(' ') and not line.startswith('\t'):
+                            current_class = line.strip()
+                            if current_class:
+                                self.class_templates[current_class] = []
+                        
+                        # Task (indented)
+                        elif line.startswith('  ') and current_class:
+                            task_line = line.strip()
+                            
+                            # Parse priority and task
+                            priority = "medium"  # default
+                            title = task_line
+                            description = ""
+                            
+                            # Check for priority format [priority]
+                            if task_line.startswith('[') and ']' in task_line:
+                                priority_end = task_line.find(']')
+                                priority = task_line[1:priority_end].strip()
+                                remaining = task_line[priority_end + 1:].strip()
+                                
+                                # Split title and description by ' - '
+                                if ' - ' in remaining:
+                                    title, description = remaining.split(' - ', 1)
+                                else:
+                                    title = remaining
+                            
+                            task_dict = {
+                                'title': title,
+                                'description': description,
+                                'priority': priority
+                            }
+                            self.class_templates[current_class].append(task_dict)
+            else:
+                print(f"Classes file {self.classes_file} not found. Using empty templates.")
+                
+        except Exception as e:
+            print(f"Error loading class templates from {self.classes_file}: {e}")
+            # Fallback to empty templates
+            self.class_templates = {}
+            
     def save_tasks(self):
-        """Save tasks and checklists to JSON file"""
+        """Save daily tasks to JSON file (class templates are loaded from classes.txt)"""
         try:
             data = {
-                'class_templates': self.class_templates,
                 'daily_tasks': self.daily_tasks
             }
             with open(self.tasks_file, 'w') as f:
@@ -141,6 +199,164 @@ class TouchCalendar:
                     json.dump(data, f, indent=2)
         except Exception as e:
             print(f"Error saving tasks: {e}")
+            
+    def reload_class_templates(self):
+        """Reload class templates from classes.txt file"""
+        self.load_class_templates()
+        messagebox.showinfo("Classes Reloaded", 
+            f"Loaded {len(self.class_templates)} classes from classes.txt")
+            
+    def parse_ics_file(self, file_path):
+        """Parse ICS calendar file and import events"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            events = []
+            current_event = {}
+            in_vevent = False
+            
+            for line in content.split('\n'):
+                line = line.strip()
+                
+                if line == 'BEGIN:VEVENT':
+                    in_vevent = True
+                    current_event = {}
+                elif line == 'END:VEVENT':
+                    if in_vevent and current_event:
+                        events.append(current_event.copy())
+                    in_vevent = False
+                    current_event = {}
+                elif in_vevent and ':' in line:
+                    # Handle line continuations (lines starting with space)
+                    if line.startswith(' ') or line.startswith('\t'):
+                        continue
+                    
+                    key, value = line.split(':', 1)
+                    
+                    # Handle parameters in key (like DTSTART;TZID=America/Chicago)
+                    if ';' in key:
+                        key = key.split(';')[0]
+                    
+                    current_event[key] = value
+            
+            return events
+        except Exception as e:
+            print(f"Error parsing ICS file: {e}")
+            return []
+    
+    def parse_ics_datetime(self, dt_string, default_date=None):
+        """Parse ICS datetime string"""
+        try:
+            # Remove timezone info for now (just use local time)
+            if 'TZID=' in dt_string:
+                dt_string = dt_string.split(':', 1)[1]
+            
+            # Handle different date formats
+            if 'T' in dt_string:
+                # Full datetime: 20240826T110000
+                if len(dt_string) >= 15:
+                    return datetime.datetime.strptime(dt_string[:15], '%Y%m%dT%H%M%S')
+            else:
+                # Date only: 20240826
+                if len(dt_string) >= 8:
+                    return datetime.datetime.strptime(dt_string[:8], '%Y%m%d')
+                    
+        except Exception as e:
+            print(f"Error parsing datetime '{dt_string}': {e}")
+            return default_date or datetime.datetime.now()
+    
+    def import_ics_events(self, file_path):
+        """Import events from ICS file"""
+        events = self.parse_ics_file(file_path)
+        imported_count = 0
+        
+        for ics_event in events:
+            try:
+                # Extract basic event info
+                summary = ics_event.get('SUMMARY', 'Untitled Event')
+                description = ics_event.get('DESCRIPTION', '').replace('\\n', '\n')
+                location = ics_event.get('LOCATION', '')
+                
+                # Parse start time
+                start_dt = self.parse_ics_datetime(ics_event.get('DTSTART', ''))
+                if not start_dt:
+                    continue
+                    
+                # Parse end time
+                end_dt = self.parse_ics_datetime(ics_event.get('DTEND', ''), start_dt)
+                
+                # Create event object
+                event = {
+                    'title': summary,
+                    'description': description,
+                    'location': location,
+                    'start_time': start_dt.strftime('%H:%M'),
+                    'end_time': end_dt.strftime('%H:%M'),
+                    'all_day': False,
+                    'category': 'imported',
+                    'imported_from': 'ics'
+                }
+                
+                # Handle recurring events (RRULE)
+                rrule = ics_event.get('RRULE', '')
+                if rrule and 'FREQ=WEEKLY' in rrule:
+                    # Parse weekly recurring events
+                    until_match = re.search(r'UNTIL=(\d{8})', rrule)
+                    byday_match = re.search(r'BYDAY=([^;]+)', rrule)
+                    
+                    if byday_match:
+                        days = byday_match.group(1).split(',')
+                        day_map = {
+                            'MO': 0, 'TU': 1, 'WE': 2, 'TH': 3, 'FR': 4, 'SA': 5, 'SU': 6
+                        }
+                        
+                        until_date = datetime.date(2025, 12, 31)  # Default end date
+                        if until_match:
+                            until_str = until_match.group(1)
+                            until_date = datetime.datetime.strptime(until_str, '%Y%m%d').date()
+                        
+                        # Create recurring events
+                        current_date = start_dt.date()
+                        while current_date <= until_date:
+                            weekday = current_date.weekday()
+                            if any(day_map.get(day) == weekday for day in days):
+                                date_str = current_date.isoformat()
+                                if date_str not in self.events:
+                                    self.events[date_str] = []
+                                
+                                # Check if event already exists
+                                exists = any(e['title'] == event['title'] and 
+                                           e['start_time'] == event['start_time'] 
+                                           for e in self.events[date_str])
+                                if not exists:
+                                    self.events[date_str].append(event.copy())
+                                    imported_count += 1
+                            
+                            current_date += datetime.timedelta(days=1)
+                else:
+                    # Single event
+                    date_str = start_dt.date().isoformat()
+                    if date_str not in self.events:
+                        self.events[date_str] = []
+                    
+                    # Check if event already exists
+                    exists = any(e['title'] == event['title'] and 
+                               e['start_time'] == event['start_time'] 
+                               for e in self.events[date_str])
+                    if not exists:
+                        self.events[date_str].append(event)
+                        imported_count += 1
+                        
+            except Exception as e:
+                print(f"Error importing event: {e}")
+                continue
+        
+        # Save events and update calendar
+        self.save_events()
+        self.update_calendar()
+        
+        return imported_count
             
     def save_events(self):
         """Save events to JSON file"""
@@ -234,11 +450,18 @@ class TouchCalendar:
         self.tasks_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         self.classes_btn = tk.Button(
-            self.bottom_frame, text="Manage Classes", font=self.button_font,
-            command=self.manage_classes, bg='lightcyan',
+            self.bottom_frame, text="Reload Classes", font=self.button_font,
+            command=self.reload_class_templates, bg='lightcyan',
             relief='raised', bd=2, height=2
         )
         self.classes_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.import_btn = tk.Button(
+            self.bottom_frame, text="Import Calendar", font=self.button_font,
+            command=self.import_calendar, bg='lightgreen',
+            relief='raised', bd=2, height=2
+        )
+        self.import_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         self.settings_btn = tk.Button(
             self.bottom_frame, text="Settings", font=self.button_font,
@@ -444,6 +667,34 @@ class TouchCalendar:
     def show_settings(self):
         """Show settings dialog"""
         SettingsDialog(self.root, self)
+        
+    def import_calendar(self):
+        """Import calendar from ICS file"""
+        # Check if we have an ICS file in the current directory first
+        if os.path.exists("Fall 2024 - Urbana-Champaign.ics"):
+            file_path = "Fall 2024 - Urbana-Champaign.ics"
+            if messagebox.askyesno("Import Calendar", 
+                "Found 'Fall 2024 - Urbana-Champaign.ics' in the app directory. Import this file?"):
+                pass  # Use this file
+            else:
+                file_path = None
+        else:
+            file_path = None
+            
+        # If no default file or user declined, show file dialog
+        if not file_path:
+            file_path = filedialog.askopenfilename(
+                title="Select Calendar File",
+                filetypes=[("Calendar files", "*.ics"), ("All files", "*.*")]
+            )
+        
+        if file_path:
+            try:
+                count = self.import_ics_events(file_path)
+                messagebox.showinfo("Import Complete", 
+                    f"Successfully imported {count} events from {os.path.basename(file_path)}")
+            except Exception as e:
+                messagebox.showerror("Import Error", f"Failed to import calendar: {str(e)}")
             
     def exit_app(self):
         """Exit the application"""
@@ -496,15 +747,31 @@ class EventDialog:
         """Create the event dialog"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title("Event Details" if not self.event else "Edit Event")
-        self.dialog.geometry("400x500")
+        
+        # Get screen dimensions and set appropriate size
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Set dialog size based on screen size
+        if screen_width <= 800:
+            dialog_width = min(380, screen_width - 40)
+            dialog_height = min(450, screen_height - 80)
+        else:
+            dialog_width = 400
+            dialog_height = 500
+            
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}")
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center the dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        # Center the dialog on screen
+        x = (screen_width - dialog_width) // 2
+        y = max(10, (screen_height - dialog_height) // 2)
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Make dialog resizable and add scrolling if needed
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(300, 350)
         
         main_frame = ttk.Frame(self.dialog, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -641,15 +908,31 @@ class EventListDialog:
         self.dialog = tk.Toplevel(self.parent)
         title = f"Events for {self.filter_date.strftime('%B %d, %Y')}" if self.filter_date else "All Events"
         self.dialog.title(title)
-        self.dialog.geometry("600x500")
+        
+        # Get screen dimensions and set appropriate size
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Set dialog size based on screen size
+        if screen_width <= 800:
+            dialog_width = min(580, screen_width - 40)
+            dialog_height = min(400, screen_height - 80)
+        else:
+            dialog_width = 600
+            dialog_height = 500
+            
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}")
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center the dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        # Center the dialog on screen
+        x = (screen_width - dialog_width) // 2
+        y = max(10, (screen_height - dialog_height) // 2)
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Make dialog resizable
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(400, 300)
         
         main_frame = ttk.Frame(self.dialog, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -770,15 +1053,30 @@ class SettingsDialog:
         """Create the settings dialog"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title("Settings")
-        self.dialog.geometry("400x300")
+        
+        # Get screen dimensions and set appropriate size
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Set dialog size based on screen size
+        if screen_width <= 800:
+            dialog_width = min(380, screen_width - 40)
+            dialog_height = min(280, screen_height - 80)
+        else:
+            dialog_width = 400
+            dialog_height = 300
+            
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center the dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        # Center the dialog on screen
+        x = (screen_width - dialog_width) // 2
+        y = max(10, (screen_height - dialog_height) // 2)
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Make dialog resizable
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(350, 250)
         
         main_frame = ttk.Frame(self.dialog, padding="20")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -846,15 +1144,30 @@ class DailyTasksDialog:
         """Create the daily tasks dialog"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title(f"Daily Tasks - {self.date.strftime('%A, %B %d, %Y')}")
-        self.dialog.geometry("700x600")
+        
+        # Get screen dimensions and set appropriate size
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Set dialog size based on screen size
+        if screen_width <= 800:
+            dialog_width = min(580, screen_width - 40)
+            dialog_height = min(450, screen_height - 80)
+        else:
+            dialog_width = 700
+            dialog_height = 600
+            
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center the dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        # Center the dialog on screen
+        x = (screen_width - dialog_width) // 2
+        y = max(10, (screen_height - dialog_height) // 2)
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Make dialog resizable
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(400, 350)
         
         main_frame = ttk.Frame(self.dialog, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -884,7 +1197,7 @@ class DailyTasksDialog:
             
             message_label = tk.Label(
                 no_classes_frame,
-                text="No classes configured.\nClick 'Manage Classes' to add your classes and tasks.",
+                text="No classes found in classes.txt file.\nAdd your classes to the classes.txt file and click 'Reload Classes' on the main screen.",
                 font=('Arial', 12),
                 justify=tk.CENTER
             )
@@ -900,8 +1213,8 @@ class DailyTasksDialog:
         
         ttk.Button(
             button_frame, 
-            text="Manage Classes", 
-            command=self.manage_classes
+            text="Reload Classes", 
+            command=self.reload_classes
         ).pack(side=tk.LEFT, padx=(0, 5))
         
         ttk.Button(
@@ -1050,9 +1363,12 @@ class DailyTasksDialog:
                 self.dialog.destroy()
                 DailyTasksDialog(self.parent, self.calendar_app, self.date)
                 
-    def manage_classes(self):
-        """Open class management dialog"""
-        ClassManagementDialog(self.dialog, self.calendar_app)
+    def reload_classes(self):
+        """Reload classes from classes.txt file"""
+        self.calendar_app.reload_class_templates()
+        # Refresh dialog to show new classes
+        self.dialog.destroy()
+        DailyTasksDialog(self.parent, self.calendar_app, self.date)
 
 
 class ClassManagementDialog:
@@ -1067,15 +1383,30 @@ class ClassManagementDialog:
         """Create the class management dialog"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title("Manage Classes and Tasks")
-        self.dialog.geometry("800x700")
+        
+        # Get screen dimensions and set appropriate size
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Set dialog size based on screen size
+        if screen_width <= 800:
+            dialog_width = min(580, screen_width - 40)
+            dialog_height = min(500, screen_height - 80)
+        else:
+            dialog_width = 800
+            dialog_height = 700
+            
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center the dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 30,
-            self.parent.winfo_rooty() + 30
-        ))
+        # Center the dialog on screen
+        x = (screen_width - dialog_width) // 2
+        y = max(10, (screen_height - dialog_height) // 2)
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Make dialog resizable
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(500, 400)
         
         main_frame = ttk.Frame(self.dialog, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -1419,15 +1750,30 @@ class TaskEditDialog:
         self.dialog = tk.Toplevel(self.parent)
         title = f"Edit Task" if self.is_edit else f"New Task for {self.class_name}"
         self.dialog.title(title)
-        self.dialog.geometry("400x300")
+        
+        # Get screen dimensions and set appropriate size
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Set dialog size based on screen size
+        if screen_width <= 800:
+            dialog_width = min(380, screen_width - 40)
+            dialog_height = min(280, screen_height - 80)
+        else:
+            dialog_width = 400
+            dialog_height = 300
+            
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center the dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        # Center the dialog on screen
+        x = (screen_width - dialog_width) // 2
+        y = max(10, (screen_height - dialog_height) // 2)
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Make dialog resizable
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(350, 250)
         
         main_frame = ttk.Frame(self.dialog, padding="20")
         main_frame.pack(fill=tk.BOTH, expand=True)
