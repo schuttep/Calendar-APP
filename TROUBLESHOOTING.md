@@ -87,18 +87,37 @@ sudo apt install python3-tkinter
 
 ### 3. Permission Issues
 
-**Problem:** Permission denied errors
+**Problem:** `chown: invalid user 'pi:pi'` or similar user errors
+
+**Root Cause:** You're using installation scripts designed for the default `pi` user, but your username is different.
 
 **Solutions:**
 ```bash
-# Fix ownership of calendar directory
-sudo chown -R pi:pi /home/pi/calendar-app
+# Check your actual username
+whoami
 
-# Make scripts executable
-chmod +x /home/pi/calendar-app/start_calendar.sh
+# Use the correct installation scripts
+chmod +x install_simple.sh    # Recommended: foolproof installer
+./install_simple.sh
 
-# Fix service file permissions
-sudo chmod 644 /etc/systemd/system/calendar-app.service
+# OR use the fixed installer
+chmod +x install_fixed.sh
+./install_fixed.sh
+
+# OR check your system first
+chmod +x check_system.sh
+./check_system.sh
+```
+
+**If you already ran the wrong script:**
+```bash
+# Clean up any partial installation
+sudo rm -rf /home/pi/calendar-app 2>/dev/null || true
+sudo rm /etc/systemd/system/calendar-app.service 2>/dev/null || true
+sudo systemctl daemon-reload
+
+# Start fresh with correct installer
+./install_simple.sh
 ```
 
 ### 4. Service Start Issues
